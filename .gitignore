@@ -3,3 +3,8 @@
 ./vis_img/*
 # ./vis_img_trashbin
 ./vis_img_trashbin/*
+
+data/
+vis/
+vis_img/
+vis_img_trashbin/
