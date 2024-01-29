@@ -6,7 +6,7 @@ from vis_sphere import vis
 from utils import load_blender_pictures, get_clip_processor
 import time
 BLENDER_PATH = "/home/qianxu/Documents/blender-3.6.8-linux-x64/blender"
-SENTENCES = ["Rubbish bin", "Standing on the ground", "Can throw trash into it"]
+SENTENCES = ["A Camera", "Don't take pictures of me", "Can you take a picture of me?", "Can fit into a drawer", "Can hang around the neck"]
 
 def render_and_process_models(dir_path:str, vis_save_path:str='./vis', shot_vis_save_path:str='./vis_img', use_cuda:bool=True):
     # html save parttern:
@@ -43,7 +43,6 @@ def render_and_process_models(dir_path:str, vis_save_path:str='./vis', shot_vis_
         subprocess.run(blender_command, shell=True)
         end = time.time()
         print(f"Blender Render Done: {model_name}. Time: {end-start}")
-        exit()
 
         vis_save_path = os.path.join(vis_save_path, model_name)
         os.makedirs(vis_save_path, exist_ok=True)

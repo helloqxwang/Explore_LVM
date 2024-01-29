@@ -171,7 +171,8 @@ def vis(clip_model, processor, img_path:str, mesh_path:str, sentences:List[str],
         # from pdb import set_trace; set_trace()
         mesh_name = os.path.split(mesh_path)[0].split('/')[-2]
         sentence = sentences[i].replace(' ', '_')
-        shot_img_save_name = os.path.join(shot_img_save_path, f'{mesh_name}_{sentence}.png') if shot_img_save_path is not None else None
+        shot_img_save_name = os.path.join(shot_img_save_path, sentence, f'{mesh_name}.png') if shot_img_save_path is not None else None
+        os.makedirs(os.path.join(shot_img_save_path, sentence), exist_ok=True)
         render_sphere(cos_sim[:, i].cpu().detach().numpy(), mesh_path=mesh_path, 
                       save_name=os.path.join(save_path, f'{sentence}.html'), 
                       img_save_name=shot_img_save_name)
