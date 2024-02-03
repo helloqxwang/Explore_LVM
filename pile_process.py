@@ -24,7 +24,6 @@ def render_mesh(mesh_path:str, img_save_dir:str, use_cuda:bool=True):
     os.environ['obj_file_path'] = mesh_path
     if use_cuda:
         os.environ['cuda_render'] = 'true'
-        # exit()
     else:
         os.environ['cuda_render'] = 'false'
     blender_command = f"blender --background render.blend --python render.py "
@@ -41,7 +40,7 @@ def render_models(model_paths:List[str], use_cuda:bool=True):
         render_mesh(model_path, img_save_dir, use_cuda)
 
 def vis_models(model_paths:List[str], vis_save_base:str='./vis', 
-               shot_vis_save_base:str='./vis_shot', skip:bool=False):
+               shot_vis_save_base:str='./vis_shot', skip_render:bool=False, skip_vis:bool=False):
     """Visualize the rendered models with the sentences
 
     Args:
@@ -92,19 +91,33 @@ def vis_models(model_paths:List[str], vis_save_base:str='./vis',
     for model_path in model_paths:
         model_name = os.path.split(model_path)[0].split('/')[-2] # name of the mesh
         img_save_dir = os.path.join(os.path.split(model_path)[0], 'img') # DIR for rendered images
+
+        # Render the model if not rendered and skip_render is False
         if not os.path.isdir(img_save_dir):
-            if skip:
+            if skip_render:
                 print(f"Model {model_name} not rendered. Skip it.")
                 continue
             else:
                 print(f"Model {model_name} not rendered. Render it first.")
                 os.makedirs(img_save_dir, exist_ok=True)
                 render_mesh(model_path, img_save_dir)
-            
 
+        # Skip the Visualation if a visualization already exists and skip_vis is True
+        shot_img_save_path_example = os.path.join(shot_vis_save_base, 'Detailed', SENTENCES[0], f'{model_name}.png')
+        if os.path.exists(shot_img_save_path_example) and skip_vis:
+            print(f"Model {model_name} already visualized. Skip it.")
+            continue
+        
+        # VIS
         start = time.time()
-        cos_sim = process(clip_model, processor, img_save_dir, sentences=SENTENCES).cpu().detach().numpy()
+        cos_sim_name = ''.join(SENTENCES).replace(' ', '')
+        if os.path.isfile(os.path.join(img_save_dir, f'{cos_sim_name}.npy')): # load the cos_sim if exists
+            cos_sim = np.load(os.path.join(img_save_dir, f'{cos_sim_name}.npy'))
+        else:
+            cos_sim = process(clip_model, processor, img_save_dir, sentences=SENTENCES).cpu().detach().numpy()
+            np.save(os.path.join(img_save_dir, f'{cos_sim_name}.npy'), cos_sim) # save the cos_sim.
         cos_sim_norm = (cos_sim - cos_sim.min()) / (cos_sim.max() - cos_sim.min())
+
         for i, sentence in enumerate(SENTENCES):
             feat_dict[sentence].append(cos_sim[:, i])
             cos_sim_1 = cos_sim[:, i]
@@ -140,16 +153,14 @@ if __name__ == "__main__":
     args.add_argument('--shot_img_path', type=str, help='Path to save a quick shot for the visualization', default='./vis_img')
     args.add_argument('--use_cuda', action='store_true', help='use cuda to render the models')
     args.add_argument('--render_only', action='store_true', help='only render the models')
-    args.add_argument('--skip', action='store_true', help='skip the model if not rendered')
+    args.add_argument('--skip_render', action='store_true', help='skip the model if not rendered')
+    args.add_argument('--skip_vis', action='store_true', help='skip the model if a vis file already exists')
     # example of sentences: --text "a chair" "can sit on it"
-    # args.add_argument('--text', nargs='*', type=str, help='the sentence to describe the mesh')
-    # args.add_argument('--render_only', action='store_true', help='only render the models')
+    args.add_argument('--text', nargs='*', type=str, default=None, help='the sentence to describe the mesh')
     args = args.parse_args()
 
-    if args.shot_img_path == 'None':
-        args.shot_img_path = None
-
-    # SENTENCES = args.text
+    if args.text is not None:
+        SENTENCES = args.text
 
     if args.render_only:
         model_paths = find_files(args.source_path, ext='obj')
@@ -158,9 +169,6 @@ if __name__ == "__main__":
         model_paths = find_files(args.source_path, ext='obj')
         model_name = os.path.split(args.source_path)[-1]
         html_dir = os.path.join(args.vis_path, model_name)
-        if args.shot_img_path is not None:
-            shot_dir = os.path.join(args.shot_img_path, model_name)
-        else:
-            shot_dir = None
-        vis_models(model_paths, html_dir, shot_dir, skip=args.skip)
+        shot_dir = os.path.join(args.shot_img_path, model_name)
+        vis_models(model_paths, html_dir, shot_dir, skip_render=args.skip_render, skip_vis=args.skip_vis)
           

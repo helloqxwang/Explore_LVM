@@ -231,8 +231,10 @@ def load_blender_pictures(path:str):
         img = cv2.imread(os.path.join(path, filename), cv2.IMREAD_UNCHANGED)
 
         images.append(img)
-
-    images = np.array(images)
+    try:
+        images = np.array(images)
+    except:
+        from pdb import set_trace; set_trace()
 
     n, m = int(np.sqrt(images.shape[0])), int(np.sqrt(images.shape[0]))
     images = images.reshape(n, m, 256, 256, -1)
