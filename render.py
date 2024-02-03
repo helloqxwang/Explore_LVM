@@ -150,8 +150,10 @@ if os.environ['cuda_render'] == 'true':
     print("Enabled GPUs for rendering:", ", ".join(enabled_gpus))
 
 stepsize = 360.0 / VIEWS
-phi = np.linspace(PHI_BOUNDS[0], PHI_BOUNDS[1], VIEWS)
-theta = np.linspace(THETA_BOUNDS[0], THETA_BOUNDS[1], VIEWS)
+# upward 
+phi = np.linspace(PHI_BOUNDS[0], PHI_BOUNDS[1], VIEWS) # (0, \pi)
+# azimuthal
+theta = np.linspace(THETA_BOUNDS[0], THETA_BOUNDS[1], VIEWS) # (0, 2\pi)
 
 phi, theta = np.meshgrid(phi, theta)
 

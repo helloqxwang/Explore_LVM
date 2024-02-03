@@ -9,6 +9,7 @@ import os
 import trimesh
 import argparse
 from typing import List
+from scipy.spatial.transform import Rotation
 
 VIEW_NUM = 25
 IMG_PATH = "/home/qianxu/Project/Explore_LVM/train"
@@ -22,7 +23,6 @@ def plot_mesh(verts, faces):
         j=faces[:,1], 
         k=faces[:,2], 
         color='lightblue')
-
 
 def axis_angle_to_matrix(phi, theta):
     """
@@ -96,11 +96,17 @@ def normalize_rgb(rgb:np.ndarray):
     return rgb
 
 def render_sphere(cos_sim:np.ndarray, mesh_path:str, save_name:str='./results.html', img_save_name:str=None):
-    """
-    """
+    """render a sphere with the mesh and the sentences and save the result to a html file 
+    Optionally, save the rendered image to a file
 
+    Args:
+        cos_sim (np.ndarray): (n, ) the cosine similarity between the text and the images
+        mesh_path (str): the path of the mesh
+        save_name (str, optional): the path for saving html. Defaults to './results.html'.
+        img_save_name (str, optional): the path for saving shot . Defaults to None.
+    """
     phi = np.linspace(0, np.pi, VIEW_NUM)
-    theta = np.linspace(0, 2*np.pi, VIEW_NUM)
+    theta = np.linspace(-np.pi / 2, 1.5*np.pi, VIEW_NUM)
     phi, theta = np.meshgrid(phi, theta)
 
     x = np.cos(phi) * np.cos(theta)
@@ -108,33 +114,30 @@ def render_sphere(cos_sim:np.ndarray, mesh_path:str, save_name:str='./results.ht
     y = np.cos(phi) * np.sin(theta)
     z = np.sin(phi)
 
-    p_colors = 1 - (cos_sim - cos_sim.min()) / (cos_sim.max() - cos_sim.min())
+    # index1 = theta == 0
+    # index2 = theta == np.pi/2
+
+    p_colors = cos_sim
     p_colors = p_colors.reshape(*x.shape)
-    # p_colors = np.ones_like(x) purple
+    # p_colors[index1] = 1
+    # p_colors[index2] = 0
+    # p_colors = np.ones_like(x)
     sphere = go.Surface(x=x, y=y, z=z, surfacecolor=p_colors, showscale=False)
 
-    mesh = trimesh.load_mesh(mesh_path)
-    if type(mesh) == trimesh.scene.scene.Scene:
-        mesh = mesh.dump(concatenate=True)
-    rotation_matrix = trimesh.transformations.rotation_matrix(
-        np.radians(90), [1, 0, 0], mesh.centroid
-    )
-    mesh.apply_transform(rotation_matrix)
-    
-
-    # # Extract the vertices and faces
-    # from pdb import set_trace; set_trace()
-    vertices = mesh.vertices
-
-    faces = mesh.faces
-
-    mesh = plot_mesh(vertices, faces)
-
-    # Create figure with both the sphere and the scatter plot
-    fig = go.Figure(data=[sphere, mesh])
-
-
-
+    if mesh_path is not None:
+        mesh = trimesh.load_mesh(mesh_path)
+        if type(mesh) == trimesh.scene.scene.Scene:
+            mesh = mesh.dump(concatenate=True)
+        rotation_matrix = trimesh.transformations.rotation_matrix(
+            np.radians(90), [1, 0, 0], mesh.centroid
+        )
+        mesh.apply_transform(rotation_matrix)
+        vertices = mesh.vertices
+        faces = mesh.faces
+        mesh = plot_mesh(vertices, faces)
+        fig = go.Figure(data=[sphere, mesh])
+    else:
+        fig = go.Figure(data=[sphere])
 
     # Update layout for a better view
     fig.update_layout(
@@ -153,29 +156,67 @@ def render_sphere(cos_sim:np.ndarray, mesh_path:str, save_name:str='./results.ht
     if save_name is not None:
         py.write_html(fig, save_name)
 
-def vis(clip_model, processor, img_path:str, mesh_path:str, sentences:List[str], save_path:str='./results.html',shot_img_save_path:str=None):
+def process(clip_model, processor, img_path:str, sentences:List[str]) -> np.ndarray:
+    """process the images and the sentences using CLIP and return the cosine similarity
+
+    Args:
+        clip_model (_type_): _description_
+        processor (_type_): _description_
+        img_path (str): DIR of the rendered images
+        sentences (List[str]): A list of sentences to describe the mesh
+
+    Returns:
+        np.ndarray: (img_num, text_num) the cosine similarity 
+    """
     device = torch.device('cuda')
     images = load_blender_pictures(img_path)
     img_shape = images.shape
     images = torch.from_numpy(images).float() / 255.0
     # images = images.to(torch.dtype('float32'))
     images = images.to(device)
-    
-    
+
     img_features = get_imgfeat(clip_model, processor, images.reshape(-1, *img_shape[2:]))
     txt_features = get_txtfeat(clip_model, processor, sentences).detach().cpu()
     txt_z = txt_features / txt_features.norm(dim=-1, keepdim=True)
     img_z = img_features / img_features.norm(dim=-1, keepdim=True)
     cos_sim = (txt_z[None] * img_z[:, None]).sum(-1)
-    for i in range(len(sentences)):
-        # from pdb import set_trace; set_trace()
-        mesh_name = os.path.split(mesh_path)[0].split('/')[-2]
-        sentence = sentences[i].replace(' ', '_')
-        shot_img_save_name = os.path.join(shot_img_save_path, sentence, f'{mesh_name}.png') if shot_img_save_path is not None else None
-        os.makedirs(os.path.join(shot_img_save_path, sentence), exist_ok=True)
-        render_sphere(cos_sim[:, i].cpu().detach().numpy(), mesh_path=mesh_path, 
-                      save_name=os.path.join(save_path, f'{sentence}.html'), 
-                      img_save_name=shot_img_save_name)
+    return cos_sim
+
+def vis(clip_model, processor, img_path:str, mesh_path:str, sentences:List[str], save_path:str='./',shot_img_save_path:str=None):
+    """render a sphere with the mesh and the sentences and save the result to a html file
+
+    Args:
+        clip_model (_type_): clip mdoel
+        processor (type ): process
+        img_path (str): the path of the rendered images
+        mesh_path (str): the path of the mesh
+        sentences (List[str]): the sentences to describe the mesh (text prompt for clip model)
+        save_path (str, optional): DIR for saving html. Defaults to './'.
+        shot_img_save_path (str, optional): DIR for shot img . Defaults to None.
+    """
+
+    device = torch.device('cuda')
+    images = load_blender_pictures(img_path)
+    img_shape = images.shape
+    images = torch.from_numpy(images).float() / 255.0
+    # images = images.to(torch.dtype('float32'))
+    images = images.to(device)
+
+    img_features = get_imgfeat(clip_model, processor, images.reshape(-1, *img_shape[2:]))
+    txt_features = get_txtfeat(clip_model, processor, sentences).detach().cpu()
+    txt_z = txt_features / txt_features.norm(dim=-1, keepdim=True)
+    img_z = img_features / img_features.norm(dim=-1, keepdim=True)
+    cos_sim = (txt_z[None] * img_z[:, None]).sum(-1)
+    return cos_sim
+    # for i in range(len(sentences)):
+    #     # from pdb import set_trace; set_trace()
+    #     mesh_name = os.path.split(mesh_path)[0].split('/')[-2]
+    #     sentence = sentences[i].replace(' ', '_')
+    #     shot_img_save_name = os.path.join(shot_img_save_path, sentence, f'{mesh_name}.png') if shot_img_save_path is not None else None
+    #     os.makedirs(os.path.join(shot_img_save_path, sentence), exist_ok=True)
+    #     render_sphere(cos_sim[:, i].cpu().detach().numpy(), mesh_path=mesh_path, 
+    #                   save_name=os.path.join(save_path, f'{sentence}.html'), 
+    #                   img_save_name=shot_img_save_name)
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
