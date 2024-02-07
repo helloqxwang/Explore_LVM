@@ -237,6 +237,7 @@ def load_blender_pictures(path:str):
         from pdb import set_trace; set_trace()
 
     n, m = int(np.sqrt(images.shape[0])), int(np.sqrt(images.shape[0]))
+    # from pdb import set_trace; set_trace()
     images = images.reshape(n, m, 256, 256, -1)
 
     return images

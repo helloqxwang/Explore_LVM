@@ -1,0 +1,232 @@
+base_path: ./data/shapenet
+
+shared_prompt:
+  - It is dangerous
+  - It is not dangerous
+  - You can grasp it
+  - You can not grasp it
+  - Can fit into a shelf
+  - Can not fit into a shelf
+  - Can fit into a box 
+  - Can not fit into a box
+
+selected:
+  - bottle
+  - jar
+  - mug
+  - bowl
+  - trash bin
+  - basket
+  - can
+  - camera
+  - guitar
+  - lamp
+  - knife
+  - skateboard
+
+objects:
+  - id: 04379243
+    name: table
+    prompts:
+      - A table
+  - id: 03593526
+    name: jar
+    prompts:
+      - A jar
+  - id: 04225987
+    name: skateboard
+    prompts:
+      - A skateboard
+  - id: 02958343
+    name: car
+    prompts:
+      - A car
+  - id: 02876657
+    name: bottle
+    prompts:
+      - A bottle
+  - id: 04460130
+    name: tower
+    prompts:
+      - A tower
+  - id: 03001627
+    name: chair
+    prompts:
+      - A chair
+  - id: 02871439
+    name: bookshelf
+    prompts:
+      - A bookshelf
+  - id: 02942699
+    name: camera
+    prompts:
+      - A camera
+  - id: 02691156
+    name: airplane
+    prompts:
+      - An airplane
+  - id: 03642806
+    name: laptop
+    prompts:
+      - A laptop
+  - id: 02801938
+    name: basket
+    prompts:
+      - A basket
+  - id: 04256520
+    name: sofa
+    prompts:
+      - A sofa
+  - id: 03624134
+    name: knife
+    prompts:
+      - A knife
+  - id: 02946921
+    name: can
+    prompts:
+      - A can
+  - id: 04090263
+    name: rifle
+    prompts:
+      - A rifle
+  - id: 04468005
+    name: train
+    prompts:
+      - A train
+  - id: 03938244
+    name: pillow
+    prompts:
+      - A pillow
+  - id: 03636649
+    name: lamp
+    prompts:
+      - A lamp
+  - id: 02747177
+    name: trash bin
+    prompts:
+      - A trash bin
+  - id: 03710193
+    name: mailbox
+    prompts:
+      - A mailbox
+  - id: 04530566
+    name: watercraft
+    prompts:
+      - A watercraft
+  - id: 03790512
+    name: motorbike
+    prompts:
+      - A motorbike
+  - id: 03207941
+    name: dishwasher
+    prompts:
+      - A dishwasher
+  - id: 02828884
+    name: bench
+    prompts:
+      - A bench
+  - id: 03948459
+    name: pistol
+    prompts:
+      - A pistol
+  - id: 04099429
+    name: rocket
+    prompts:
+      - A rocket
+  - id: 03691459
+    name: loudspeaker
+    prompts:
+      - A loudspeaker
+  - id: 03337140
+    name: file cabinet
+    prompts:
+      - A file cabinet
+  - id: 02773838
+    name: bag
+    prompts:
+      - A bag
+  - id: 02933112
+    name: cabinet
+    prompts:
+      - A cabinet
+  - id: 02818832
+    name: bed
+    prompts:
+      - A bed
+  - id: 02843684
+    name: birdhouse
+    prompts:
+      - A birdhouse
+  - id: 03211117
+    name: display
+    prompts:
+      - A display
+  - id: 03928116
+    name: piano
+    prompts:
+      - A piano
+  - id: 03261776
+    name: earphone
+    prompts:
+      - An earphone
+  - id: 04401088
+    name: telephone
+    prompts:
+      - A telephone
+  - id: 04330267
+    name: stove
+    prompts:
+      - A stove
+  - id: 03759954
+    name: microphone
+    prompts:
+      - A microphone
+  - id: 02924116
+    name: bus
+    prompts:
+      - A bus
+  - id: 03797390
+    name: mug
+    prompts:
+      - A mug
+  - id: 04074963
+    name: remote
+    prompts:
+      - A remote
+  - id: 02808440
+    name: bathtub
+    prompts:
+      - A bathtub
+  - id: 02880940
+    name: bowl
+    prompts:
+      - A bowl
+  - id: 03085013
+    name: keyboard
+    prompts:
+      - A keyboard
+  - id: 03467517
+    name: guitar
+    prompts:
+      - A guitar
+  - id: 04554684
+    name: washer
+    prompts:
+      - A washer
+  - id: 02834778
+    name: bicycle
+    prompts:
+      - A bicycle
+  - id: 03325088
+    name: faucet
+    prompts:
+      - A faucet
+  - id: 04004475
+    name: printer
+    prompts:
+      - A printer
+  - id: 02954340
+    name: cap
+    prompts:
+      - A cap
+

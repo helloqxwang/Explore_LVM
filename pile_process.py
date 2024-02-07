@@ -11,6 +11,7 @@ import numpy as np
 BLENDER_PATH = "/home/qianxu/Documents/blender-3.6.8-linux-x64/blender"
 SENTENCES = ["A Car", "Be careful!", "You can drive it", "Can be put into a drawer", 
              ]
+BASE_DIR = './data/shapenet'
 
 def render_mesh(mesh_path:str, img_save_dir:str, use_cuda:bool=True):
     """render a mesh with blender
@@ -84,12 +85,12 @@ def vis_models(model_paths:List[str], vis_save_base:str='./vis',
     for sentence in SENTENCES:
         os.makedirs(os.path.join(vis_save_base, 'Detailed', sentence), exist_ok=True)
         os.makedirs(os.path.join(shot_vis_save_base, 'Detailed', sentence), exist_ok=True)
-        os.makedirs(os.path.join(vis_save_base, 'Uni_norm', sentence), exist_ok=True)
-        os.makedirs(os.path.join(shot_vis_save_base, 'Uni_norm', sentence), exist_ok=True)
     feat_dict = {key: [] for key in SENTENCES}
+    model_name_ls = []
 
     for model_path in model_paths:
         model_name = os.path.split(model_path)[0].split('/')[-2] # name of the mesh
+        model_name_ls.append(model_name)
         img_save_dir = os.path.join(os.path.split(model_path)[0], 'img') # DIR for rendered images
 
         # Render the model if not rendered and skip_render is False
@@ -116,25 +117,22 @@ def vis_models(model_paths:List[str], vis_save_base:str='./vis',
         else:
             cos_sim = process(clip_model, processor, img_save_dir, sentences=SENTENCES).cpu().detach().numpy()
             np.save(os.path.join(img_save_dir, f'{cos_sim_name}.npy'), cos_sim) # save the cos_sim.
-        cos_sim_norm = (cos_sim - cos_sim.min()) / (cos_sim.max() - cos_sim.min())
 
         for i, sentence in enumerate(SENTENCES):
             feat_dict[sentence].append(cos_sim[:, i])
-            cos_sim_1 = cos_sim[:, i]
-            cos_sim_1 = (cos_sim_1 - cos_sim_1.min()) / (cos_sim_1.max() - cos_sim_1.min())
-            # Four path
-            shot_img_save_path = os.path.join(shot_vis_save_base, 'Detailed', sentence, f'{model_name}.png')
-            html_save_path = os.path.join(vis_save_base, 'Detailed', sentence, f'{model_name}.html')
-            shot_img_norm_path = os.path.join(shot_vis_save_base, 'Uni_norm', sentence, f'{model_name}.png')
-            html_norm_save_path = os.path.join(vis_save_base, 'Uni_norm', sentence, f'{model_name}.html')
-            render_sphere(cos_sim_1, mesh_path=model_path, 
-                          save_name=html_save_path, 
-                          img_save_name=shot_img_save_path)
-            render_sphere(cos_sim_norm[:, i], mesh_path=model_path, 
-                          save_name=html_norm_save_path, 
-                          img_save_name=shot_img_norm_path)
         end = time.time()
-        print(f"Process And Vis Done: {model_name}. Time: {end-start}")
+        print(f"CLIP process And Vis Done: {model_name}. Time: {end-start}")
+    
+    for sentence in SENTENCES:
+        sim = np.stack(feat_dict[sentence], axis=0) # (N_mesh, 625)
+        cos_sim_norm = (sim - sim.min()) / (sim.max() - sim.min())
+        for i, model_name in enumerate(model_name_ls):
+            shot_img_save_path = os.path.join(shot_vis_save_base, 'Detailed', sentence, f'{model_name}.png')
+            html_save_path = None
+            render_sphere(cos_sim_norm[i], mesh_path=model_path, 
+                            save_name=html_save_path, 
+                            img_save_name=shot_img_save_path)
+            print(f"Model {model_name} visualized with sentence {sentence}.")
 
     sum_dict = {key: np.stack(feat_dict[key], axis=0).mean(axis=0) for key in feat_dict}
     for key, value in sum_dict.items():
@@ -157,6 +155,7 @@ if __name__ == "__main__":
     args.add_argument('--skip_vis', action='store_true', help='skip the model if a vis file already exists')
     # example of sentences: --text "a chair" "can sit on it"
     args.add_argument('--text', nargs='*', type=str, default=None, help='the sentence to describe the mesh')
+    args.add_argument('--yaml', action='store_true', help='render lots of models in one time.')
     args = args.parse_args()
 
     if args.text is not None:
@@ -165,6 +164,25 @@ if __name__ == "__main__":
     if args.render_only:
         model_paths = find_files(args.source_path, ext='obj')
         render_models(model_paths, args.use_cuda) 
+    elif args.yaml:
+        import yaml
+        with open('./config.yaml', 'r') as f:
+            config = yaml.load(f, Loader=yaml.FullLoader)
+        BASE_DIR = config['base_path']
+        SENTENCES = config['shared_prompt']
+        selected_model = config['selected']
+        objects_info = config['objects']
+        objects_list = [item for item in objects_info if item['name'] in selected_model]
+        sentences_ori = SENTENCES
+        for item in objects_list:
+            model_paths = find_files(os.path.join(BASE_DIR, item['id']), ext='obj')
+            model_name = item['name']
+            html_dir = os.path.join(args.vis_path, model_name)
+            shot_dir = os.path.join(args.shot_img_path, model_name)
+            model_paths = model_paths[:100]
+            SENTENCES = sentences_ori + item['prompts']
+            vis_models(model_paths, html_dir, shot_dir, skip_render=args.skip_render, skip_vis=args.skip_vis)
+
     else:
         model_paths = find_files(args.source_path, ext='obj')
         model_name = os.path.split(args.source_path)[-1]
